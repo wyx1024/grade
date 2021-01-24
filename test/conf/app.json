@@ -2,8 +2,8 @@
   "Name": "testZinx",
   "TcpPort": 8999,
   "Host": "0.0.0.0",
-  "Version": "V0.4",
-  "MaxConn": 10,
+
+  "MaxConn": 2,
   "MaxPackageSize": 512,
-  "TcpPort": 8999
+  "WorkerPoolSize": 15
 }

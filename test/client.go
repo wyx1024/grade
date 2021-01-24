@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go-growth/znet"
 	"io"
 	"net"
 	"time"
@@ -13,9 +14,13 @@ func main() {
 		fmt.Println("dial tcp err: ", err)
 		return
 	}
+	dp := znet.NewDataPack()
+	var msgID uint32
+	msgID = 2
 	for  {
-		time.Sleep(time.Second*2)
-		_, err =conn.Write([]byte("hello zinx v3.0"))
+		time.Sleep(time.Second)
+		binaryData, err := dp.Pack(znet.NewMessage(msgID,[]byte("hello zinx v6.0")))
+		_, err =conn.Write(binaryData)
 		if err != nil {
 			if err != io.EOF {
 				fmt.Println("server stop")
@@ -25,17 +30,37 @@ func main() {
 			continue
 		}
 
-		buf := make([]byte, 512)
-		num,err :=conn.Read(buf)
+		dataHead := make([]byte, dp.GetHeadLen())
+		_, err = io.ReadFull(conn, dataHead)
 		if err != nil {
 			if err != io.EOF {
 				fmt.Println("server stop")
 				break
 			}
-			fmt.Println("conn write err:", err)
+			fmt.Println("read head data err ", err)
+			break
+		}
+		msg, err := dp.UnPack(dataHead)
+		if err != nil {
+
+			fmt.Println("unpack head dat err :", err)
 			continue
 		}
-		fmt.Printf("%s\n", buf[:num])
-
+		var data []byte
+		if msg.GetDataLen() > 0 {
+			data = make([]byte, msg.GetDataLen())
+			_, err = io.ReadFull(conn, data)
+			if err != nil {
+				fmt.Println("read data err:", err)
+				return
+			}
+			msg.SetData(data)
+		}
+		fmt.Println("msg", msg.GetMsgID(),msg.GetDataLen(), string(msg.GetData()))
+		if msgID == 2 {
+			msgID = 1
+		}else {
+			msgID = 2
+		}
 	}
 }

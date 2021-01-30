@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"go-growth/utils"
 	"go-growth/ziface"
 )
 
@@ -47,7 +48,7 @@ func (d DataPack) Pack(msg ziface.IMessage) ([]byte, error) {
 func (d DataPack) UnPack(data []byte) (ziface.IMessage, error) {
 	buf := bytes.NewBuffer(data)
 
-	msg := Messages{}
+	msg := &Messages{}
 
 	if err := binary.Read(buf, binary.LittleEndian, &msg.Len); err != nil{
 		fmt.Println("reader data len err :", err)
@@ -59,12 +60,12 @@ func (d DataPack) UnPack(data []byte) (ziface.IMessage, error) {
 		return nil,err
 	}
 
-	if 512 > 0 && msg.Len > 512 {
+	if utils.GlobalObj.MaxPackageSize > 0 && msg.Len > uint32(utils.GlobalObj.MaxPackageSize ){
 		fmt.Println("err data size ")
 		return nil, errors.New("err data size")
 	}
 
-	return &msg, nil
+	return msg, nil
 }
 
 

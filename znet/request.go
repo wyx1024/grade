@@ -4,7 +4,7 @@ import "go-growth/ziface"
 
 type Request struct {
 	conn ziface.IConnection
-	data []byte
+	Msg ziface.IMessage
 }
 
 
@@ -13,5 +13,9 @@ func (req *Request)GetConnection() ziface.IConnection{
 }
 
 func (req *Request)GetData() []byte{
-	return req.data
+	return req.Msg.GetData()
+}
+
+func (req *Request)GetMsgId() uint32  {
+	return req.Msg.GetMsgID()
 }

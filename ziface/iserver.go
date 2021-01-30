@@ -4,5 +4,10 @@ type IServer interface {
 	Start()
 	Stop()
 	Serve()
-	AddRouter(router IRouter)
+	AddRouter(uint32, IRouter)
+	GetConnMgr() IConnManager
+	SetOnConnStart(func(IConnection))
+	SetOnConnStop(func(IConnection))
+	CallOnConnStart(IConnection)
+	CallOnConnStop(IConnection)
 }

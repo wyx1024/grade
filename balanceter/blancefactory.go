@@ -1,4 +1,4 @@
-package balances
+package balanceter
 
 type LbType int
 

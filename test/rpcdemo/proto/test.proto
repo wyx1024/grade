@@ -1,0 +1,17 @@
+syntax = "proto3";
+package test;
+option go_package = ".;pb";
+option java_package = "com.zjsmart.third.rtc.service.pb";
+option java_outer_classname = "AdGetReqProto";
+
+service test{
+  rpc SayHello(HelloRequest) returns (HelloResponse){}
+}
+
+message HelloRequest{
+  string name = 1;
+}
+
+message HelloResponse{
+  string msg =1;
+}

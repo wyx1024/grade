@@ -14,7 +14,7 @@ func main()  {
 
 	pb.RegisterTestServer(serve, &services.SayHello{})
 
-	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8555")
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8556")
 	if err != nil {
 		panic(err)
 	}
@@ -25,7 +25,7 @@ func main()  {
 
 	reg, err := etcd.NewService(etcd.ServiceInfo{
 		Name: "g.srv.mail",
-		IP:   "127.0.0.1:8555", //grpc服务节点ip
+		IP:   "127.0.0.1:8556", //grpc服务节点ip
 	}, []string{"0.0.0.0:12379", "0.0.0.0:22379", "0.0.0.0:32379"}) // etcd的节点ip
 	if err != nil {
 		log.Fatal(err)

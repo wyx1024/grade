@@ -21,12 +21,12 @@ type Service struct {
 	client      *clientv3.Client
 }
 
-func NewService(info ServiceInfo, endPoints []string)(*Service, error)  {
+func NewService(info ServiceInfo, endPoints []string) (*Service, error) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:            endPoints,
-		DialTimeout:          time.Second*20,
+		Endpoints:   endPoints,
+		DialTimeout: time.Second * 20,
 	})
-	if err != nil{
+	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
@@ -37,19 +37,19 @@ func NewService(info ServiceInfo, endPoints []string)(*Service, error)  {
 	return s, nil
 }
 
-func (s *Service) Start() (error) {
+func (s *Service) Start() error {
 	ch, err := s.keepAlive()
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-	for	 {
+	for {
 		select {
-		case <- s.stop:
+		case <-s.stop:
 			return errors.New("service stop")
-		case <- s.client.Ctx().Done():
+		case <-s.client.Ctx().Done():
 			return errors.New("service Client Ctx Done")
-		case _, ok := <- ch:
+		case _, ok := <-ch:
 			if !ok {
 				log.Println("keep alive channel closed")
 				return s.revoke()
@@ -75,14 +75,12 @@ func (s *Service) revoke() error {
 }
 
 func (s *Service) getKey() string {
-	return s.ServiceInfo.Name + "/" + s.ServiceInfo.IP
+	return schema + "/" + s.ServiceInfo.Name + "/" + s.ServiceInfo.IP
 }
 
 func (s *Service) keepAlive() (<-chan *clientv3.LeaseKeepAliveResponse, error) {
-	info := s.ServiceInfo
-	key := info.Name + "/" + info.IP
-	val, _ := json.Marshal(info)
-
+	key := s.getKey()
+	val, _ := json.Marshal(s.ServiceInfo)
 	grant, err := s.client.Grant(context.Background(), 5)
 	if err != nil {
 		return nil, err

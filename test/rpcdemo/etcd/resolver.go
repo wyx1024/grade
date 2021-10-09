@@ -3,6 +3,8 @@ package etcd
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"go.etcd.io/etcd/clientv3"
 	"log"
@@ -20,58 +22,56 @@ type MyResolver struct {
 	addrDict  map[string]resolver.Address
 }
 
-func NewResolver(endpoints []string, service string) resolver.Builder {
-	return &MyResolver{
-		endPoints: endpoints,
-		service:   service,
-		addrDict:  make(map[string]resolver.Address)}
-}
-
-func (r *MyResolver) ResolveNow(options resolver.ResolveNowOptions) {
-}
-
-func (r *MyResolver) Close() {
-}
-
-func (r *MyResolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
+func NewResolver(endpoints []string, service string) (resolver.Builder, error) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints: r.endPoints,
+		Endpoints: endpoints,
 	})
+
 	if err != nil {
-		log.Fatal(err)
 		return nil, err
 	}
 
-	r.cli = client
+	return &MyResolver{
+		endPoints: endpoints,
+		cli:       client,
+		service:   service}, nil
+}
+
+func (r *MyResolver) ResolveNow(options resolver.ResolveNowOptions) {}
+
+func (r *MyResolver) Close() {}
+
+func (r *MyResolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r.cc = cc
-	go r.watch(r.service)
-	return r, err
-}
-
-func (r *MyResolver) Scheme() string {
-	return schema + "_" + r.service
-}
-
-func (r *MyResolver) watch(prefix string) {
-	response, err := r.cli.Get(context.Background(), prefix, clientv3.WithPrefix())
+	r.addrDict = make(map[string]resolver.Address)
+	response, err := r.cli.Get(context.Background(), r.service, clientv3.WithPrefix())
 	if err == nil {
-		for _, kv := range response.Kvs {
-			info := &ServiceInfo{}
-			err := json.Unmarshal(kv.Value, info)
-			if err != nil {
-				log.Println(err)
-			} else {
-				r.addrDict[string(kv.Value)] = resolver.Address{Addr: info.IP}
-			}
+		return nil, err
+	}
+
+	for _, kv := range response.Kvs {
+		info := &ServiceInfo{}
+		err := json.Unmarshal(kv.Value, info)
+		if err != nil {
+			log.Println(err)
+		} else {
+			r.addrDict[string(kv.Value)] = resolver.Address{Addr: info.IP}
 		}
 	}
 
 	r.updateState()
-	r.watchNodes(prefix)
+
+	go r.watcher()
+
+	return r, err
 }
 
-func (r *MyResolver) watchNodes(prefix string) {
-	rch := r.cli.Watch(context.Background(), prefix, clientv3.WithPrefix(), clientv3.WithPrevKV())
+func (r *MyResolver) Scheme() string {
+	return schema + "/" + r.service + "/"
+}
+
+func (r *MyResolver) watcher() {
+	rch := r.cli.Watch(context.Background(), r.service, clientv3.WithPrefix(), clientv3.WithPrevKV())
 	for ev := range rch {
 		update := false
 		for _, event := range ev.Events {
@@ -91,8 +91,8 @@ func (r *MyResolver) watchNodes(prefix string) {
 				if ok {
 					delete(r.addrDict, key)
 					update = true
-				}else {
-					//log.Println(errors.New(fmt.Sprintf("not found Key %s", key)))
+				} else {
+					log.Println(errors.New(fmt.Sprintf("not found Key %s", key)))
 				}
 			}
 		}
